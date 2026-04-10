@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "buildCommand": "node build.js",
+  "outputDirectory": "public",
+  "functions": {
+    "api/discord-webhook.js": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/permits",
+      "destination": "/permits.html"
+    },
+    {
+      "source": "/documents",
+      "destination": "/documents.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}

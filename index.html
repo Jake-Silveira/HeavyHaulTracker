@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Move Intake - Heavy Haul Move Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- ENV_PLACEHOLDER_START -->
+    <script id="env-script">
+      window.__ENV__ = {
+        SUPABASE_URL: '__SUPABASE_URL__',
+        SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__'
+      };
+    </script>
+    <!-- ENV_PLACEHOLDER_END -->
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Heavy Haul</h2>
+                <p>Move Control System</p>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/admin">Dashboard</a></li>
+                <li><a href="/permits">Permit Tracker</a></li>
+                <li><a href="/documents">Documents</a></li>
+                <li><a href="/" class="active">Move Intake</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1>New Move Intake</h1>
+                <a href="/admin" class="btn-secondary">View Dashboard</a>
+            </header>
+
+            <div class="form-wrapper">
+                <form id="intakeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customerName">Customer Name <span class="required">*</span></label>
+                            <input type="text" id="customerName" name="customerName" required placeholder="ABC Manufacturing">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="origin">Origin <span class="required">*</span></label>
+                            <input type="text" id="origin" name="origin" required placeholder="Houston, TX">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="destination">Destination <span class="required">*</span></label>
+                            <input type="text" id="destination" name="destination" required placeholder="Atlanta, GA">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="deliveryDate">Required Delivery Date <span class="required">*</span></label>
+                            <input type="date" id="deliveryDate" name="deliveryDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="width">Load Width (feet) <span class="required">*</span></label>
+                            <input type="number" id="width" name="width" step="0.1" required placeholder="14.5">
+                            <small class="helper-text">Loads > 12' require escort</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="height">Load Height (feet) <span class="required">*</span></label>
+                            <input type="number" id="height" name="height" step="0.1" required placeholder="12.0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="weight">Load Weight (lbs) <span class="required">*</span></label>
+                            <input type="number" id="weight" name="weight" required placeholder="85000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="statesCrossed">Number of States Crossing <span class="required">*</span></label>
+                            <input type="number" id="statesCrossed" name="statesCrossed" min="1" required placeholder="3">
+                            <small class="helper-text">Multi-state moves require permits</small>
+                        </div>
+                    </div>
+
+                    <div class="auto-calculations" id="autoCalculations">
+                        <h3>Auto-Calculated Requirements</h3>
+                        <div class="calc-row">
+                            <span class="calc-label">Escort Required:</span>
+                            <span class="calc-value" id="escortRequired">--</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">Permit Status:</span>
+                            <span class="calc-value" id="permitStatus">--</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn-primary">Submit Move</button>
+
+                    <div id="message" class="message"></div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Supabase SDK (loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>

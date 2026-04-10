@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Control - Heavy Haul Move Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- ENV_PLACEHOLDER_START -->
+    <script id="env-script">
+      window.__ENV__ = {
+        SUPABASE_URL: '__SUPABASE_URL__',
+        SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__'
+      };
+    </script>
+    <!-- ENV_PLACEHOLDER_END -->
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Heavy Haul</h2>
+                <p>Move Control System</p>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/admin">Dashboard</a></li>
+                <li><a href="/permits">Permit Tracker</a></li>
+                <li><a href="/documents" class="active">Documents</a></li>
+                <li><a href="/">Move Intake</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Document Control Panel</h1>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </header>
+
+            <div class="document-control">
+                <div class="control-header">
+                    <h2>Document Checklist by Move</h2>
+                    <div class="filter-controls">
+                        <select id="moveFilter">
+                            <option value="all">All Moves</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="documents-grid" id="documentsGrid">
+                    <div class="loading">Loading documents...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Supabase SDK (loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="documents.js"></script>
+</body>
+</html>
