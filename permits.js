@@ -51,6 +51,23 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPermits('all');
     }
 
+    // Supabase Realtime: Listen for moves changes
+    const movesChannel = supabaseClient
+        .channel('permits-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'moves'
+            },
+            () => {
+                // Reload when any move changes
+                loadPermits(statusFilter?.value || 'all');
+            }
+        )
+        .subscribe();
+
     // Load permits from Supabase
     async function loadPermits(filter = 'all') {
         try {

@@ -50,6 +50,23 @@ document.addEventListener('DOMContentLoaded', function() {
         await loadMovesAndDocuments();
     }
 
+    // Supabase Realtime: Listen for document changes
+    const docsChannel = supabaseClient
+        .channel('docs-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'documents'
+            },
+            () => {
+                // Reload when any document changes
+                loadDocuments(moveFilter?.value || 'all');
+            }
+        )
+        .subscribe();
+
     // Load moves and their documents
     async function loadMovesAndDocuments() {
         try {
@@ -306,10 +323,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                doc.route_plan;
 
             if (allComplete) {
-                await supabaseClient
+                const { data, error: updateError } = await supabaseClient
                     .from('moves')
                     .update({ overall_status: 'ready' })
-                    .eq('id', moveId);
+                    .eq('id', moveId)
+                    .select();
+
+                if (updateError) {
+                    console.error('Error updating move status:', updateError);
+                } else {
+                    console.log('✅ Move #' + moveId + ' auto-updated to "Ready for Dispatch"');
+                    // Show brief notification
+                    showNotification('🎉 All documents complete! Move #' + moveId + ' is now Ready for Dispatch');
+                }
             }
         } catch (error) {
             console.error('Error checking move readiness:', error);
@@ -323,4 +349,35 @@ document.addEventListener('DOMContentLoaded', function() {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Show brief notification toast
+    function showNotification(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: 600;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 3000);
+    }
+
+    // Add slideIn animation
+    const style = document.createElement('style');
+    style.textContent = `@keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`;
+    document.head.appendChild(style);
 });

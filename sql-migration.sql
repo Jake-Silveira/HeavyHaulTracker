@@ -126,7 +126,147 @@ CREATE POLICY "admin_users_select_any_admin"
 ON admin_profiles FOR SELECT TO authenticated
 USING (true);
 
--- Step 7: Seed Data (Realistic Heavy Haul Loads)
+-- Step 7: Status Automation Function & Triggers
+
+-- Function to auto-update overall_status when conditions are met
+CREATE OR REPLACE FUNCTION check_move_ready()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Check if all conditions are met for "ready" status
+  -- Conditions: all documents complete + permits approved + escort confirmed
+  
+  -- Check documents completeness
+  DECLARE
+    doc_record RECORD;
+    all_docs_complete BOOLEAN := false;
+    all_conditions_met BOOLEAN := false;
+  BEGIN
+    SELECT * INTO doc_record
+    FROM documents
+    WHERE move_id = NEW.id;
+
+    IF FOUND THEN
+      all_docs_complete := (
+        doc_record.insurance_cert = true AND
+        doc_record.rateconfirmation = true AND
+        doc_record.bill_of_lading = true AND
+        doc_record.escort_confirmation = true AND
+        doc_record.route_plan = true
+      );
+    END IF;
+
+    -- Check all conditions
+    all_conditions_met := (
+      all_docs_complete AND
+      NEW.permit_status = 'approved' AND
+      NEW.escort_status = 'confirmed'
+    );
+
+    -- Auto-update status if conditions met and status isn't already 'ready' or 'in_transit' or 'complete'
+    IF all_conditions_met AND NEW.overall_status NOT IN ('ready', 'in_transit', 'complete') THEN
+      NEW.overall_status := 'ready';
+    END IF;
+
+    -- Auto-update status to 'permits' if documents are complete but permits/escort not ready
+    IF all_docs_complete AND NEW.overall_status = 'intake' THEN
+      NEW.overall_status := 'permits';
+    END IF;
+  END;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger on moves table (fires on INSERT and UPDATE)
+DROP TRIGGER IF EXISTS trg_check_move_ready ON moves;
+CREATE TRIGGER trg_check_move_ready
+  BEFORE INSERT OR UPDATE ON moves
+  FOR EACH ROW
+  EXECUTE FUNCTION check_move_ready();
+
+-- Function to check move ready when documents change
+CREATE OR REPLACE FUNCTION check_move_ready_on_doc_change()
+RETURNS TRIGGER AS $$
+DECLARE
+  move_record RECORD;
+  doc_record RECORD;
+  all_docs_complete BOOLEAN := false;
+  all_conditions_met BOOLEAN := false;
+  target_id BIGINT;
+BEGIN
+  -- Get the move_id from the document record
+  IF TG_OP = 'DELETE' THEN
+    target_id := OLD.move_id;
+  ELSE
+    target_id := NEW.move_id;
+  END IF;
+
+  -- Get the move record
+  SELECT * INTO move_record FROM moves WHERE id = target_id;
+  
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  -- Get all documents for this move (take the first one)
+  SELECT * INTO doc_record
+  FROM documents
+  WHERE move_id = target_id
+  LIMIT 1;
+
+  IF FOUND THEN
+    all_docs_complete := (
+      doc_record.insurance_cert = true AND
+      doc_record.rateconfirmation = true AND
+      doc_record.bill_of_lading = true AND
+      doc_record.escort_confirmation = true AND
+      doc_record.route_plan = true
+    );
+  END IF;
+
+  -- Check all conditions
+  all_conditions_met := (
+    all_docs_complete AND
+    move_record.permit_status = 'approved' AND
+    move_record.escort_status = 'confirmed'
+  );
+
+  -- Update status if conditions met
+  IF all_conditions_met AND move_record.overall_status NOT IN ('ready', 'in_transit', 'complete') THEN
+    UPDATE moves
+    SET overall_status = 'ready'
+    WHERE id = target_id;
+  END IF;
+
+  -- Update to 'permits' if docs complete but permits not approved yet
+  IF all_docs_complete AND move_record.overall_status = 'intake' THEN
+    UPDATE moves
+    SET overall_status = 'permits'
+    WHERE id = target_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger on documents table
+DROP TRIGGER IF EXISTS trg_check_move_ready_on_doc_change ON documents;
+CREATE TRIGGER trg_check_move_ready_on_doc_change
+  AFTER INSERT OR UPDATE OR DELETE ON documents
+  FOR EACH ROW
+  EXECUTE FUNCTION check_move_ready_on_doc_change();
+
+-- Step 7.5: Enable Realtime publication for live updates
+-- This allows the frontend to receive real-time updates via Supabase Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE moves;
+ALTER PUBLICATION supabase_realtime ADD TABLE documents;
+
+-- IMPORTANT: You must also enable Realtime in Supabase Dashboard:
+-- 1. Go to Database → Replication → Enable Realtime for 'moves' and 'documents' tables
+-- 2. Toggle ON both tables under "Available Tables" section
+-- 3. This enables Supabase to broadcast changes to connected clients
+
+-- Step 8: Seed Data (Realistic Heavy Haul Loads)
 
 INSERT INTO moves (customer_name, origin, destination, width, height, weight, states_crossed, delivery_date, permit_status, escort_status, overall_status) VALUES
 ('ABC Manufacturing', 'Houston, TX', 'Atlanta, GA', 14.5, 12.0, 85000, 3, '2026-04-20', 'pending', 'scheduled', 'permits'),
