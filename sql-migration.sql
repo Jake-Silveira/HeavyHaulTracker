@@ -256,16 +256,6 @@ CREATE TRIGGER trg_check_move_ready_on_doc_change
   FOR EACH ROW
   EXECUTE FUNCTION check_move_ready_on_doc_change();
 
--- Step 7.5: Enable Realtime publication for live updates
--- This allows the frontend to receive real-time updates via Supabase Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE moves;
-ALTER PUBLICATION supabase_realtime ADD TABLE documents;
-
--- IMPORTANT: You must also enable Realtime in Supabase Dashboard:
--- 1. Go to Database → Replication → Enable Realtime for 'moves' and 'documents' tables
--- 2. Toggle ON both tables under "Available Tables" section
--- 3. This enables Supabase to broadcast changes to connected clients
-
 -- Step 8: Seed Data (Realistic Heavy Haul Loads)
 
 INSERT INTO moves (customer_name, origin, destination, width, height, weight, states_crossed, delivery_date, permit_status, escort_status, overall_status) VALUES

@@ -99,27 +99,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Supabase Realtime: Listen for status changes on moves table
-    const movesChannel = supabaseClient
-        .channel('moves-status-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'moves'
-            },
-            (payload) => {
-                // Only reload if status changed
-                const newStatus = payload.new.overall_status;
-                const oldStatus = payload.old.overall_status;
-                if (newStatus !== oldStatus) {
-                    console.log(`✅ Move #${payload.new.id} status changed: ${oldStatus} → ${newStatus}`);
-                    loadMoves(); // Reload to refresh the grid
-                }
-            }
-        )
-        .subscribe();
+    // Polling: Refresh moves every 10 seconds to catch status changes
+    let pollingInterval;
+    function startPolling() {
+        pollingInterval = setInterval(() => {
+            loadMoves();
+        }, 10000); // 10 seconds
+    }
+
+    function stopPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+    }
+
+    // Start polling when logged in
+    startPolling();
 
     // Load moves from Supabase
     async function loadMoves() {

@@ -51,22 +51,19 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPermits('all');
     }
 
-    // Supabase Realtime: Listen for moves changes
-    const movesChannel = supabaseClient
-        .channel('permits-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'moves'
-            },
-            () => {
-                // Reload when any move changes
-                loadPermits(statusFilter?.value || 'all');
-            }
-        )
-        .subscribe();
+    // Polling: Refresh permits every 10 seconds
+    let pollingInterval;
+    function startPolling() {
+        pollingInterval = setInterval(() => {
+            loadPermits(statusFilter?.value || 'all');
+        }, 10000);
+    }
+
+    function stopPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+    }
+
+    startPolling();
 
     // Load permits from Supabase
     async function loadPermits(filter = 'all') {

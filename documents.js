@@ -50,22 +50,19 @@ document.addEventListener('DOMContentLoaded', function() {
         await loadMovesAndDocuments();
     }
 
-    // Supabase Realtime: Listen for document changes
-    const docsChannel = supabaseClient
-        .channel('docs-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'documents'
-            },
-            () => {
-                // Reload when any document changes
-                loadDocuments(moveFilter?.value || 'all');
-            }
-        )
-        .subscribe();
+    // Polling: Refresh documents every 10 seconds
+    let pollingInterval;
+    function startPolling() {
+        pollingInterval = setInterval(() => {
+            loadDocuments(moveFilter?.value || 'all');
+        }, 10000);
+    }
+
+    function stopPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+    }
+
+    startPolling();
 
     // Load moves and their documents
     async function loadMovesAndDocuments() {
