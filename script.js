@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const statesCrossedInput = document.getElementById('statesCrossed');
     const escortRequiredEl = document.getElementById('escortRequired');
     const permitStatusEl = document.getElementById('permitStatus');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Logout handler
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = '/admin';
+        });
+    }
 
     // Auto-calculate escort requirement
     const ESCORT_THRESHOLD = 12; // feet

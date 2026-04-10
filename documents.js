@@ -64,6 +64,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     startPolling();
 
+    // Logout handler
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            stopPolling();
+            await supabaseClient.auth.signOut();
+            window.location.href = '/admin';
+        });
+    }
+
     // Load moves and their documents
     async function loadMovesAndDocuments() {
         try {
