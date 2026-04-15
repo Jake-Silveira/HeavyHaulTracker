@@ -128,6 +128,74 @@ body {
     color: #1a202c;
 }
 
+/* Auth Status Display */
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.auth-status-text {
+    font-size: 0.9rem;
+    color: #718096;
+    font-weight: 500;
+}
+
+.auth-status-text.logged-in {
+    color: #38a169;
+}
+
+.btn-login {
+    background: #3498db;
+    color: white;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-login:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+/* Auth Required Banner */
+.auth-banner {
+    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+    border: 2px solid #e53e3e;
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.auth-banner p {
+    color: #742a2a;
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.btn-login-banner {
+    background: #e53e3e;
+    color: white;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-login-banner:hover {
+    background: #c53030;
+    transform: translateY(-1px);
+}
+
 .btn-secondary {
     background: white;
     color: #3498db;

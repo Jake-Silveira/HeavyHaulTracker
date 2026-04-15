@@ -44,7 +44,14 @@ document.addEventListener('DOMContentLoaded', function() {
             loginSection.style.display = 'none';
             adminDashboard.style.display = 'flex';
 
-            loadMoves();
+            // Redirect to the page user was trying to access (if any)
+            const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+            if (redirectPath && redirectPath !== '/admin') {
+                sessionStorage.removeItem('redirectAfterLogin');
+                window.location.href = redirectPath;
+            } else {
+                loadMoves();
+            }
         } catch (error) {
             console.error('Login error:', error);
             loginError.textContent = 'An error occurred during login';

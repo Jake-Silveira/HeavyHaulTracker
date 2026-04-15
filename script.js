@@ -16,6 +16,68 @@ document.addEventListener('DOMContentLoaded', function() {
     const escortRequiredEl = document.getElementById('escortRequired');
     const permitStatusEl = document.getElementById('permitStatus');
     const logoutBtn = document.getElementById('logoutBtn');
+    const authStatusText = document.getElementById('authStatusText');
+    const authBanner = document.getElementById('authBanner');
+    const formWrapper = document.getElementById('formWrapper');
+
+    // Track authentication state
+    let currentUser = null;
+
+    // Check authentication status on page load
+    async function checkAuthStatus() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+
+        if (session) {
+            currentUser = session.user;
+            updateAuthUI(true);
+        } else {
+            currentUser = null;
+            updateAuthUI(false);
+        }
+    }
+
+    // Update UI based on authentication status
+    function updateAuthUI(isLoggedIn) {
+        if (isLoggedIn && currentUser) {
+            // User is logged in
+            if (authStatusText) {
+                authStatusText.textContent = `Logged in as ${currentUser.email}`;
+                authStatusText.className = 'auth-status-text logged-in';
+            }
+            if (authBanner) {
+                authBanner.style.display = 'none';
+            }
+            if (formWrapper) {
+                formWrapper.style.display = 'block';
+            }
+        } else {
+            // User is not logged in
+            if (authStatusText) {
+                authStatusText.textContent = 'Not logged in';
+                authStatusText.className = 'auth-status-text';
+            }
+            if (authBanner) {
+                authBanner.style.display = 'flex';
+            }
+            if (formWrapper) {
+                formWrapper.style.display = 'none';
+            }
+        }
+    }
+
+    // Listen for auth state changes
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            currentUser = session.user;
+            updateAuthUI(true);
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            updateAuthUI(false);
+        }
+    });
+
+    // Run initial auth check
+    checkAuthStatus();
 
     // Logout handler
     if (logoutBtn) {
@@ -69,6 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Check if user is authenticated
+            if (!currentUser) {
+                showMessage('You must be logged in to submit a move.', 'error');
+                return;
+            }
 
             // Get form values
             const customerName = document.getElementById('customerName')?.value.trim();

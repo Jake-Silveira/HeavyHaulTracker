@@ -2,18 +2,13 @@
 // Manages document checklists for each move with progress tracking
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Supabase client
-    const SUPABASE_URL = window.__ENV__.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.__ENV__.SUPABASE_ANON_KEY;
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Use the shared Supabase client from auth-guard
+    const supabaseClient = window.supabaseClient;
 
     // DOM elements
     const documentsGrid = document.getElementById('documentsGrid');
     const moveFilter = document.getElementById('moveFilter');
     const logoutBtn = document.getElementById('logoutBtn');
-
-    // Check authentication
-    checkAuth();
 
     // Listen for auth state changes
     supabaseClient.auth.onAuthStateChange((event, session) => {

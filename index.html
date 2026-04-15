@@ -36,9 +36,19 @@
         <main class="main-content">
             <header class="top-header">
                 <h1>New Move Intake</h1>
+                <div class="auth-status" id="authStatus">
+                    <span id="authStatusText" class="auth-status-text">Not logged in</span>
+                    <a href="/admin" id="loginBtn" class="btn-login">Login</a>
+                </div>
             </header>
 
-            <div class="form-wrapper">
+            <!-- Authentication Required Banner -->
+            <div id="authBanner" class="auth-banner" style="display: none;">
+                <p>🔒 You must be logged in to submit a move.</p>
+                <a href="/admin" class="btn-login-banner">Login to Continue</a>
+            </div>
+
+            <div class="form-wrapper" id="formWrapper">
                 <form id="intakeForm">
                     <div class="form-row">
                         <div class="form-group">
