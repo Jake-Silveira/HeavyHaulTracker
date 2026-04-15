@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let rows = '';
         moves.forEach(move => {
             const isExpiring = move.delivery_date && checkExpiringSoon(move.delivery_date, 3);
-            const permitBadge = getPermitBadge(move.permit_status);
+            const permitDropdown = getPermitDropdown(move.id, move.permit_status);
             const expirationDate = move.delivery_date ? formatDate(move.delivery_date) : 'N/A';
             const warningBadge = isExpiring ? '<span class="badge badge-warning">Expiring Soon</span>' : '';
 
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td><strong>#${move.id}</strong></td>
                     <td>${escapeHtml(move.origin)} → ${escapeHtml(move.destination)}</td>
                     <td>${move.states_crossed} state${move.states_crossed > 1 ? 's' : ''}</td>
-                    <td>${permitBadge}</td>
+                    <td>${permitDropdown}</td>
                     <td>${expirationDate}</td>
                     <td>${warningBadge}</td>
                 </tr>
@@ -121,15 +121,56 @@ document.addEventListener('DOMContentLoaded', function() {
         return new Date(deliveryDate) < threshold;
     }
 
-    // Get permit status badge
-    function getPermitBadge(status) {
-        const badges = {
-            'pending': '<span class="badge badge-pending">Pending</span>',
-            'approved': '<span class="badge badge-success">Approved</span>',
-            'expiring': '<span class="badge badge-warning">Expiring</span>'
+    // Get permit status dropdown (inline editable)
+    function getPermitDropdown(moveId, status) {
+        const statusMap = {
+            'pending': { label: 'Pending', class: 'badge-pending' },
+            'approved': { label: 'Approved', class: 'badge-success' },
+            'rejected': { label: 'Rejected', class: 'badge-warning' }
         };
-        return badges[status] || '<span class="badge badge-secondary">Unknown</span>';
+        const current = statusMap[status] || statusMap['pending'];
+
+        return `
+            <select class="permit-select"
+                    data-move-id="${moveId}"
+                    onchange="updatePermitStatus(${moveId}, this.value)">
+                <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="approved" ${status === 'approved' ? 'selected' : ''}>Approved</option>
+                <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>Rejected</option>
+            </select>
+        `;
     }
+
+    // Update permit status (global function for inline onchange)
+    window.updatePermitStatus = async function(moveId, newStatus) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('moves')
+                .update({ permit_status: newStatus })
+                .eq('id', moveId)
+                .select();
+
+            if (error) throw error;
+
+            console.log(`✅ Move #${moveId} permit status updated to "${newStatus}"`);
+
+            // Auto-update overall_status if approved
+            if (newStatus === 'approved') {
+                await supabaseClient
+                    .from('moves')
+                    .update({ overall_status: 'permits' })
+                    .eq('id', moveId);
+            }
+
+            // Refresh permits table
+            loadPermits(statusFilter?.value || 'all');
+        } catch (error) {
+            console.error('Error updating permit status:', error);
+            alert('Error updating permit status. Please try again.');
+            // Revert on error
+            loadPermits(statusFilter?.value || 'all');
+        }
+    };
 
     // Format date
     function formatDate(dateStr) {
