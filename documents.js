@@ -257,6 +257,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (error) throw error;
 
+                // Sync escort_status on moves table when escort_confirmation changes
+                if (field === 'escort_confirmation') {
+                    await supabaseClient
+                        .from('moves')
+                        .update({ escort_status: value ? 'confirmed' : 'not_scheduled' })
+                        .eq('id', moveId);
+                }
+
                 // Check if move is ready for dispatch
                 await checkMoveReady(moveId);
 
@@ -273,6 +281,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     .select();
 
                 if (error) throw error;
+
+                // Sync escort_status if this is the escort field
+                if (field === 'escort_confirmation' && value) {
+                    await supabaseClient
+                        .from('moves')
+                        .update({ escort_status: 'confirmed' })
+                        .eq('id', moveId);
+                }
 
                 // Reload to get the new doc ID
                 loadDocuments(moveFilter?.value || 'all');
