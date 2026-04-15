@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Check if move is ready for dispatch (all docs complete)
+    // Check and update move status based on docs + permits + escort
     async function checkMoveReady(moveId) {
         try {
             const { data: doc, error } = await supabaseClient
@@ -292,7 +292,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 .eq('move_id', moveId)
                 .single();
 
-            if (error || !doc) return;
+            if (error || !doc) {
+                // No docs at all - revert to intake
+                await supabaseClient
+                    .from('moves')
+                    .update({ overall_status: 'intake' })
+                    .eq('id', moveId);
+                return;
+            }
 
             const allComplete = doc.insurance_cert &&
                                doc.rateconfirmation &&
@@ -300,19 +307,44 @@ document.addEventListener('DOMContentLoaded', function() {
                                doc.escort_confirmation &&
                                doc.route_plan;
 
-            if (allComplete) {
-                const { data, error: updateError } = await supabaseClient
-                    .from('moves')
-                    .update({ overall_status: 'ready' })
-                    .eq('id', moveId)
-                    .select();
+            const anyProvided = doc.insurance_cert ||
+                               doc.rateconfirmation ||
+                               doc.bill_of_lading ||
+                               doc.escort_confirmation ||
+                               doc.route_plan;
 
-                if (updateError) {
-                    console.error('Error updating move status:', updateError);
-                } else {
-                    console.log('✅ Move #' + moveId + ' auto-updated to "Ready for Dispatch"');
-                    showNotification('🎉 All documents complete! Move #' + moveId + ' is now Ready for Dispatch');
-                }
+            // Get move info for permit/escort status
+            const { data: move } = await supabaseClient
+                .from('moves')
+                .select('permit_status, escort_status')
+                .eq('id', moveId)
+                .single();
+
+            if (!move) return;
+
+            const permitsApproved = move.permit_status === 'approved';
+            const escortConfirmed = move.escort_status === 'confirmed';
+
+            // Determine new status
+            let newStatus;
+            if (allComplete && permitsApproved && escortConfirmed) {
+                newStatus = 'ready';
+            } else if (anyProvided || permitsApproved) {
+                newStatus = 'pending';
+            } else {
+                newStatus = 'intake';
+            }
+
+            // Only update if status changed
+            const { error: updateError } = await supabaseClient
+                .from('moves')
+                .update({ overall_status: newStatus })
+                .eq('id', moveId);
+
+            if (updateError) {
+                console.error('Error updating move status:', updateError);
+            } else {
+                console.log(`✅ Move #${moveId} status updated to "${newStatus}"`);
             }
         } catch (error) {
             console.error('Error checking move readiness:', error);

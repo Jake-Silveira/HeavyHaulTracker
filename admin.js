@@ -269,12 +269,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function getStatusBadge(status) {
         const badges = {
             'intake': '<span class="badge badge-intake">Intake</span>',
-            'permits': '<span class="badge badge-permits">Permits</span>',
+            'pending': '<span class="badge badge-permits">Pending</span>',
             'ready': '<span class="badge badge-ready">Ready</span>',
             'in_transit': '<span class="badge badge-transit">In Transit</span>',
             'complete': '<span class="badge badge-complete">Complete</span>'
         };
-        return badges[status] || '<span class="badge badge-secondary">Unknown</span>';
+        return badges[status] || '<span class="badge badge-secondary">' + escapeHtml(status) + '</span>';
     }
 
     // Get permit badge

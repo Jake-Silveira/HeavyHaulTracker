@@ -157,6 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             console.log(`✅ Move #${moveId} permit status updated to "${newStatus}"`);
 
+            // Recalculate overall_status after permit change
+            await recalculateMoveStatus(moveId);
+
             // Refresh permits table
             loadPermits(statusFilter?.value || 'all');
         } catch (error) {
@@ -164,6 +167,65 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error updating permit status. Please try again.');
             // Revert on error
             loadPermits(statusFilter?.value || 'all');
+        }
+    };
+
+    // Recalculate overall_status based on docs + permits + escort
+    async function recalculateMoveStatus(moveId) {
+        try {
+            // Get documents
+            const { data: doc } = await supabaseClient
+                .from('documents')
+                .select('*')
+                .eq('move_id', moveId)
+                .single();
+
+            // Get move info
+            const { data: move } = await supabaseClient
+                .from('moves')
+                .select('permit_status, escort_status')
+                .eq('id', moveId)
+                .single();
+
+            if (!move) return;
+
+            let allComplete = false;
+            let anyProvided = false;
+
+            if (doc) {
+                allComplete = doc.insurance_cert &&
+                             doc.rateconfirmation &&
+                             doc.bill_of_lading &&
+                             doc.escort_confirmation &&
+                             doc.route_plan;
+
+                anyProvided = doc.insurance_cert ||
+                             doc.rateconfirmation ||
+                             doc.bill_of_lading ||
+                             doc.escort_confirmation ||
+                             doc.route_plan;
+            }
+
+            const permitsApproved = move.permit_status === 'approved';
+            const escortConfirmed = move.escort_status === 'confirmed';
+
+            let newStatus;
+            if (allComplete && permitsApproved && escortConfirmed) {
+                newStatus = 'ready';
+            } else if (anyProvided || permitsApproved) {
+                newStatus = 'pending';
+            } else {
+                newStatus = 'intake';
+            }
+
+            await supabaseClient
+                .from('moves')
+                .update({ overall_status: newStatus })
+                .eq('id', moveId);
+
+            console.log(`✅ Move #${moveId} status recalculated to "${newStatus}"`);
+        } catch (error) {
+            console.error('Error recalculating move status:', error);
         }
     };
 
