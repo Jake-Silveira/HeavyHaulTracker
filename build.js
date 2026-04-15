@@ -48,7 +48,8 @@ const filesToCopy = [
   'script.js',
   'admin.js',
   'permits.js',
-  'documents.js'
+  'documents.js',
+  'auth-guard.js'
 ];
 
 // HTML files to process
