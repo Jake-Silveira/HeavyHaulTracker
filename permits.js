@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Logout handler
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
+            stopPolling();
             await supabaseClient.auth.signOut();
             window.location.href = '/admin';
         });
@@ -32,42 +33,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Check authentication status
-    async function checkAuth() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        
-        if (!session) {
-            // Not authenticated, redirect to admin login
-            window.location.href = '/admin';
-            return;
-        }
-
-        // Load permits
-        loadPermits('all');
-    }
-
-    // Polling: Refresh permits every 10 seconds
+    // Polling: Refresh permits every 30 seconds (not 10)
     let pollingInterval;
     function startPolling() {
         pollingInterval = setInterval(() => {
             loadPermits(statusFilter?.value || 'all');
-        }, 10000);
+        }, 30000);
     }
 
     function stopPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
     }
 
-    startPolling();
+    // Load permits on page load
+    loadPermits('all');
 
-    // Logout handler
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            stopPolling();
-            await supabaseClient.auth.signOut();
-            window.location.href = '/admin';
-        });
-    }
+    // Start polling AFTER initial load
+    setTimeout(startPolling, 2000);
 
     // Load permits from Supabase
     async function loadPermits(filter = 'all') {
@@ -85,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Filter moves based on status
             let filteredMoves = moves || [];
-            
+
             if (filter === 'pending') {
                 filteredMoves = filteredMoves.filter(m => m.permit_status === 'pending');
             } else if (filter === 'approved') {

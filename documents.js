@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Logout handler
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
+            stopPolling();
             await supabaseClient.auth.signOut();
             window.location.href = '/admin';
         });
@@ -32,46 +33,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Check authentication status
-    async function checkAuth() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        
-        if (!session) {
-            window.location.href = '/admin';
-            return;
-        }
-
-        // Load moves and documents
-        await loadMovesAndDocuments();
-    }
-
-    // Polling: Refresh documents every 10 seconds
+    // Polling: Refresh documents every 30 seconds (not 10)
     let pollingInterval;
+    let allMoves = [];
+
     function startPolling() {
         pollingInterval = setInterval(() => {
             loadDocuments(moveFilter?.value || 'all');
-        }, 10000);
+        }, 30000);
     }
 
     function stopPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
     }
 
-    startPolling();
+    // Load moves and documents on page load
+    loadMovesAndDocuments();
 
-    // Logout handler
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            stopPolling();
-            await supabaseClient.auth.signOut();
-            window.location.href = '/admin';
-        });
-    }
+    // Start polling AFTER initial load completes
+    setTimeout(startPolling, 2000);
 
     // Load moves and their documents
     async function loadMovesAndDocuments() {
         try {
-            // Load all moves
+            // Load all moves ONCE, then reuse for filtering
             const { data: moves, error: movesError } = await supabaseClient
                 .from('moves')
                 .select('*')
@@ -83,11 +68,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Populate filter dropdown
-            populateMoveFilter(moves || []);
+            allMoves = moves || [];
 
-            // Load documents
-            loadDocuments('all');
+            // Populate filter dropdown
+            populateMoveFilter(allMoves);
+
+            // Load documents for these moves
+            const { data: documents, error: docsError } = await supabaseClient
+                .from('documents')
+                .select('*');
+
+            if (docsError) {
+                console.error('Error loading documents:', docsError);
+            }
+
+            displayDocuments(allMoves, documents || []);
         } catch (error) {
             console.error('Load error:', error);
             documentsGrid.innerHTML = `<div class="error-message">Error loading documents: ${error.message}</div>`;
@@ -98,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateMoveFilter(moves) {
         if (!moveFilter) return;
 
-        // Keep the "All Moves" option
         moveFilter.innerHTML = '<option value="all">All Moves</option>';
 
         moves.forEach(move => {
@@ -109,40 +103,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Load documents for moves
-    async function loadDocuments(filter = 'all') {
-        try {
-            // Get moves
-            const { data: moves, error: movesError } = await supabaseClient
-                .from('moves')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (movesError) {
-                console.error('Error loading moves:', movesError);
-                return;
-            }
-
-            // Get documents
-            const { data: documents, error: docsError } = await supabaseClient
-                .from('documents')
-                .select('*');
-
-            if (docsError) {
-                console.error('Error loading documents:', docsError);
-            }
-
-            // Filter moves if needed
-            let filteredMoves = moves || [];
-            if (filter !== 'all') {
-                filteredMoves = filteredMoves.filter(m => m.id === parseInt(filter));
-            }
-
-            displayDocuments(filteredMoves, documents || []);
-        } catch (error) {
-            console.error('Load documents error:', error);
-            documentsGrid.innerHTML = `<div class="error-message">Error loading documents: ${error.message}</div>`;
+    // Load documents for moves (client-side filtering only - no extra fetch)
+    function loadDocuments(filter = 'all') {
+        // Don't re-fetch moves; use cached data
+        if (allMoves.length === 0) {
+            loadMovesAndDocuments();
+            return;
         }
+
+        let filteredMoves = allMoves;
+        if (filter !== 'all') {
+            filteredMoves = allMoves.filter(m => m.id === parseInt(filter));
+        }
+
+        // Fetch only documents (moves are cached)
+        supabaseClient
+            .from('documents')
+            .select('*')
+            .then(({ data: documents, error }) => {
+                if (error) {
+                    console.error('Error loading documents:', error);
+                    return;
+                }
+                displayDocuments(filteredMoves, documents || []);
+            });
     }
 
     // Display document cards
@@ -263,11 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle document field (global function for inline onchange)
     window.toggleDocumentField = async function(docId, moveId, field, value) {
         try {
-            const supabaseClient = window.supabase.createClient(
-                window.__ENV__.SUPABASE_URL,
-                window.__ENV__.SUPABASE_ANON_KEY
-            );
-
             if (docId) {
                 // Update existing document
                 const { data, error } = await supabaseClient
@@ -304,11 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if move is ready for dispatch (all docs complete)
     async function checkMoveReady(moveId) {
         try {
-            const supabaseClient = window.supabase.createClient(
-                window.__ENV__.SUPABASE_URL,
-                window.__ENV__.SUPABASE_ANON_KEY
-            );
-
             const { data: doc, error } = await supabaseClient
                 .from('documents')
                 .select('*')
@@ -317,10 +291,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (error || !doc) return;
 
-            const allComplete = doc.insurance_cert && 
-                               doc.rateconfirmation && 
-                               doc.bill_of_lading && 
-                               doc.escort_confirmation && 
+            const allComplete = doc.insurance_cert &&
+                               doc.rateconfirmation &&
+                               doc.bill_of_lading &&
+                               doc.escort_confirmation &&
                                doc.route_plan;
 
             if (allComplete) {
@@ -334,7 +308,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Error updating move status:', updateError);
                 } else {
                     console.log('✅ Move #' + moveId + ' auto-updated to "Ready for Dispatch"');
-                    // Show brief notification
                     showNotification('🎉 All documents complete! Move #' + moveId + ' is now Ready for Dispatch');
                 }
             }
