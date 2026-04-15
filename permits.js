@@ -123,15 +123,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get permit status dropdown (inline editable)
     function getPermitDropdown(moveId, status) {
-        const statusMap = {
-            'pending': { label: 'Pending', class: 'badge-pending' },
-            'approved': { label: 'Approved', class: 'badge-success' },
-            'rejected': { label: 'Rejected', class: 'badge-warning' }
-        };
-        const current = statusMap[status] || statusMap['pending'];
-
         return `
-            <select class="permit-select"
+            <select class="permit-select ${getPermitStatusClass(status)}"
                     data-move-id="${moveId}"
                     onchange="updatePermitStatus(${moveId}, this.value)">
                 <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
@@ -139,6 +132,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>Rejected</option>
             </select>
         `;
+    }
+
+    // Get CSS class based on permit status
+    function getPermitStatusClass(status) {
+        const classes = {
+            'pending': 'status-pending',
+            'approved': 'status-approved',
+            'rejected': 'status-rejected'
+        };
+        return classes[status] || 'status-pending';
     }
 
     // Update permit status (global function for inline onchange)
@@ -153,14 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (error) throw error;
 
             console.log(`✅ Move #${moveId} permit status updated to "${newStatus}"`);
-
-            // Auto-update overall_status if approved
-            if (newStatus === 'approved') {
-                await supabaseClient
-                    .from('moves')
-                    .update({ overall_status: 'permits' })
-                    .eq('id', moveId);
-            }
 
             // Refresh permits table
             loadPermits(statusFilter?.value || 'all');

@@ -634,19 +634,38 @@ body {
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    background: #fafcff;
     transition: all 0.2s;
 }
 
 .permit-select:hover {
-    border-color: #3498db;
-    background: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .permit-select:focus {
     outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Pending - Yellow */
+.permit-select.status-pending {
+    background: #fefcbf;
+    color: #975a16;
+    border-color: #ecc94b;
+}
+
+/* Approved - Green */
+.permit-select.status-approved {
+    background: #c6f6d5;
+    color: #22543d;
+    border-color: #68d391;
+}
+
+/* Rejected - Red */
+.permit-select.status-rejected {
+    background: #fed7d7;
+    color: #742a2a;
+    border-color: #fc8181;
 }
 
 /* Auto-calculations box */
