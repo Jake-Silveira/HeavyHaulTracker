@@ -259,6 +259,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Check if move is ready for dispatch
                 await checkMoveReady(moveId);
+
+                // Refresh the UI with updated data
+                loadDocuments(moveFilter?.value || 'all');
             } else {
                 // Create new document record
                 const { data, error } = await supabaseClient
